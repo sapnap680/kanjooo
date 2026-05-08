@@ -911,12 +911,6 @@
           </div>
 
           <div>
-            <label for="homePassFare" class="block text-sm font-bold text-gray-700 mb-2">定期料金（自宅→事務所、10回以上適用） (円):</label>
-            <input type="number" id="homePassFare" min="0" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition" placeholder="未設定の場合は通常料金を使用">
-            <p class="text-sm text-gray-500 mt-1">10回以上の場合、この定期料金が適用されます（未設定の場合は通常料金）</p>
-          </div>
-
-          <div>
             <label for="universityStation" class="block text-sm font-bold text-gray-700 mb-2">大学最寄り駅:</label>
             <input type="text" id="universityStation" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition">
           </div>
@@ -924,12 +918,6 @@
           <div>
             <label for="universityFare" class="block text-sm font-bold text-gray-700 mb-2">往復交通費（学校→事務所） (円):</label>
             <input type="number" id="universityFare" min="0" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition">
-          </div>
-
-          <div>
-            <label for="universityPassFare" class="block text-sm font-bold text-gray-700 mb-2">定期料金（学校→事務所、10回以上適用） (円):</label>
-            <input type="number" id="universityPassFare" min="0" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition" placeholder="未設定の場合は通常料金を使用">
-            <p class="text-sm text-gray-500 mt-1">10回以上の場合、この定期料金が適用されます（未設定の場合は通常料金）</p>
           </div>
 
           <button type="submit" id="addPersonBtn" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-cyan-700 transition duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
@@ -1134,44 +1122,21 @@
       return Array.from(dateMap.values());
     }
 
-    // 月ごとに定期判定して交通費を計算し、全体合計を返す
+    // 交通経路ごとの件数と交通費合計を計算して返す
     function calculateAggregatedStats(person, personRecords) {
       const uniqueDateRecords = getLatestRecordByDate(personRecords);
-      const monthlyCountMap = new Map();
-
-      uniqueDateRecords.forEach(record => {
-        if (!record.date) return;
-        const parts = record.date.split('/');
-        if (parts.length !== 3) return;
-
-        const monthKey = `${parts[0]}/${parts[1]}`;
-        if (!monthlyCountMap.has(monthKey)) {
-          monthlyCountMap.set(monthKey, { homeCount: 0, schoolCount: 0 });
-        }
-
-        const monthStat = monthlyCountMap.get(monthKey);
-        if (record.route === '自宅→事務所') {
-          monthStat.homeCount += 1;
-        } else if (record.route === '学校→事務所') {
-          monthStat.schoolCount += 1;
-        }
-      });
-
       let totalFare = 0;
       let homeCount = 0;
       let schoolCount = 0;
 
-      monthlyCountMap.forEach(monthStat => {
-        const homeFareForMonth = (monthStat.homeCount >= 10 && person.homePassFare)
-          ? person.homePassFare
-          : person.homeFare * monthStat.homeCount;
-        const schoolFareForMonth = (monthStat.schoolCount >= 10 && person.universityPassFare)
-          ? person.universityPassFare
-          : person.universityFare * monthStat.schoolCount;
-
-        totalFare += homeFareForMonth + schoolFareForMonth;
-        homeCount += monthStat.homeCount;
-        schoolCount += monthStat.schoolCount;
+      uniqueDateRecords.forEach(record => {
+        if (record.route === '自宅→事務所') {
+          homeCount += 1;
+          totalFare += person.homeFare || 0;
+        } else if (record.route === '学校→事務所') {
+          schoolCount += 1;
+          totalFare += person.universityFare || 0;
+        }
       });
 
       return {
@@ -1278,10 +1243,8 @@
       const furigana = document.getElementById('personFurigana').value;
       const order = parseInt(document.getElementById('personOrder').value) || 0;
       const homeFare = parseInt(document.getElementById('homeFare').value);
-      const homePassFare = document.getElementById('homePassFare').value ? parseInt(document.getElementById('homePassFare').value) : null;
       const universityStation = document.getElementById('universityStation').value;
       const universityFare = parseInt(document.getElementById('universityFare').value);
-      const universityPassFare = document.getElementById('universityPassFare').value ? parseInt(document.getElementById('universityPassFare').value) : null;
 
       if (people.some(p => p.name === name)) {
         alert('この名前は既に登録されています');
@@ -1304,10 +1267,8 @@
           order: order,
           homeStation: homeStation,
           homeFare: homeFare,
-          homePassFare: homePassFare,
           universityStation: universityStation,
           universityFare: universityFare,
-          universityPassFare: universityPassFare,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -1382,24 +1343,14 @@
         if (orderStr === null) return;
         const order = parseInt(orderStr) || 0;
 
-        const homePassFareStr = prompt('定期料金（自宅→事務所、10回以上適用）円（未設定の場合は空欄）:', person.homePassFare || '');
-        if (homePassFareStr === null) return;
-        const homePassFare = homePassFareStr.trim() === '' ? null : (isNaN(parseInt(homePassFareStr)) ? null : parseInt(homePassFareStr));
-
-        const universityPassFareStr = prompt('定期料金（学校→事務所、10回以上適用）円（未設定の場合は空欄）:', person.universityPassFare || '');
-        if (universityPassFareStr === null) return;
-        const universityPassFare = universityPassFareStr.trim() === '' ? null : (isNaN(parseInt(universityPassFareStr)) ? null : parseInt(universityPassFareStr));
-
         const updateData = {
           name: name.trim(),
           furigana: furigana.trim(),
           order: order,
           homeStation: homeStation.trim(),
           homeFare: homeFare,
-          homePassFare: homePassFare,
           universityStation: universityStation.trim(),
-          universityFare: universityFare,
-          universityPassFare: universityPassFare
+          universityFare: universityFare
         };
 
         await db.collection('people').doc(id).update(updateData);
@@ -1494,8 +1445,8 @@
             <div class="text-xl font-bold text-gray-800 mb-3">${p.name}</div>
             <div class="text-sm text-gray-600 mb-4 bg-white p-3 rounded-lg">
               <div class="mb-1"><span class="font-bold">ふりがな:</span> ${p.furigana || '-'} | <span class="font-bold">表示順序:</span> ${p.order || 0}</div>
-              <div class="mb-1"><span class="font-bold">家最寄り駅:</span> ${p.homeStation} (<span class="text-cyan-600 font-bold">¥${p.homeFare.toLocaleString()}</span>${p.homePassFare ? ` / 定期: ¥${p.homePassFare.toLocaleString()}` : ''})</div>
-              <div><span class="font-bold">大学最寄り駅:</span> ${p.universityStation} (<span class="text-cyan-600 font-bold">¥${p.universityFare.toLocaleString()}</span>${p.universityPassFare ? ` / 定期: ¥${p.universityPassFare.toLocaleString()}` : ''})</div>
+              <div class="mb-1"><span class="font-bold">家最寄り駅:</span> ${p.homeStation} (<span class="text-cyan-600 font-bold">¥${p.homeFare.toLocaleString()}</span>)</div>
+              <div><span class="font-bold">大学最寄り駅:</span> ${p.universityStation} (<span class="text-cyan-600 font-bold">¥${p.universityFare.toLocaleString()}</span>)</div>
             </div>
             <div class="grid grid-cols-3 gap-4">
               <div class="bg-white p-4 rounded-lg text-center">
@@ -1835,8 +1786,8 @@
           }
         const homeCount = aggregate.homeCount;
         const schoolCount = aggregate.schoolCount;
-        const homeTotalFare = (homeCount >= 10 && person.homePassFare) ? person.homePassFare : person.homeFare * homeCount;
-        const universityTotalFare = (schoolCount >= 10 && person.universityPassFare) ? person.universityPassFare : person.universityFare * schoolCount;
+        const homeTotalFare = person.homeFare * homeCount;
+        const universityTotalFare = person.universityFare * schoolCount;
         const totalFare = aggregate.totalFare;
         
         // 出勤日のリスト（重複除去）
@@ -1861,7 +1812,7 @@
                 </tr>
                 <tr>
                   <td>自宅 往復交通費</td>
-                  <td>¥${person.homeFare.toLocaleString()}${person.homePassFare ? ` (定期: ¥${person.homePassFare.toLocaleString()})` : ''}</td>
+                  <td>¥${person.homeFare.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td>大学 最寄り駅</td>
@@ -1869,7 +1820,7 @@
                 </tr>
                 <tr>
                   <td>大学 往復交通費</td>
-                  <td>¥${person.universityFare.toLocaleString()}${person.universityPassFare ? ` (定期: ¥${person.universityPassFare.toLocaleString()})` : ''}</td>
+                  <td>¥${person.universityFare.toLocaleString()}</td>
                 </tr>
               </table>
             </div>
@@ -1889,7 +1840,7 @@
                   </div>
                   <div class="summary-pair">
                     <div class="summary-label">小計</div>
-                    <div class="summary-value">¥${homeTotalFare.toLocaleString()}${homeCount >= 10 && person.homePassFare ? ' (定期適用)' : ''}</div>
+                    <div class="summary-value">¥${homeTotalFare.toLocaleString()}</div>
                   </div>
                 </div>
                 <div class="summary-row">
@@ -1899,7 +1850,7 @@
                   </div>
                   <div class="summary-pair">
                     <div class="summary-label">小計</div>
-                    <div class="summary-value">¥${universityTotalFare.toLocaleString()}${schoolCount >= 10 && person.universityPassFare ? ' (定期適用)' : ''}</div>
+                    <div class="summary-value">¥${universityTotalFare.toLocaleString()}</div>
                   </div>
                 </div>
               </div>
