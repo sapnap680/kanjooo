@@ -1125,6 +1125,8 @@
     // 交通経路ごとの件数と交通費合計を計算して返す
     function calculateAggregatedStats(person, personRecords) {
       const uniqueDateRecords = getLatestRecordByDate(personRecords);
+      const homeFare = Number(person.homeFare) || 0;
+      const universityFare = Number(person.universityFare) || 0;
       let totalFare = 0;
       let homeCount = 0;
       let schoolCount = 0;
@@ -1132,10 +1134,10 @@
       uniqueDateRecords.forEach(record => {
         if (record.route === '自宅→事務所') {
           homeCount += 1;
-          totalFare += person.homeFare || 0;
+          totalFare += homeFare;
         } else if (record.route === '学校→事務所') {
           schoolCount += 1;
-          totalFare += person.universityFare || 0;
+          totalFare += universityFare;
         }
       });
 
@@ -1255,6 +1257,10 @@
         alert('ふりがなを入力してください');
         return;
       }
+      if (isNaN(homeFare) || homeFare < 0 || isNaN(universityFare) || universityFare < 0) {
+        alert('交通費は0以上の数値を入力してください');
+        return;
+      }
 
       const submitBtn = document.getElementById('addPersonBtn');
       submitBtn.disabled = true;
@@ -1281,7 +1287,7 @@
         alert('人を登録しました');
       } catch (error) {
         console.error('登録エラー:', error);
-        alert('登録に失敗しました');
+        alert('登録に失敗しました: ' + (error?.message || error));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = '登録';
@@ -1439,14 +1445,16 @@
         const aggregate = calculateAggregatedStats(p, pRecords);
         const count = aggregate.total;
         const totalFare = aggregate.totalFare;
+        const homeFare = Number(p.homeFare) || 0;
+        const universityFare = Number(p.universityFare) || 0;
         
         return `
           <div class="bg-gradient-to-r from-cyan-50 to-blue-50 p-6 rounded-xl shadow-md border-2 border-cyan-200 hover:shadow-lg transition mb-4">
             <div class="text-xl font-bold text-gray-800 mb-3">${p.name}</div>
             <div class="text-sm text-gray-600 mb-4 bg-white p-3 rounded-lg">
               <div class="mb-1"><span class="font-bold">ふりがな:</span> ${p.furigana || '-'} | <span class="font-bold">表示順序:</span> ${p.order || 0}</div>
-              <div class="mb-1"><span class="font-bold">家最寄り駅:</span> ${p.homeStation} (<span class="text-cyan-600 font-bold">¥${p.homeFare.toLocaleString()}</span>)</div>
-              <div><span class="font-bold">大学最寄り駅:</span> ${p.universityStation} (<span class="text-cyan-600 font-bold">¥${p.universityFare.toLocaleString()}</span>)</div>
+              <div class="mb-1"><span class="font-bold">家最寄り駅:</span> ${p.homeStation || '-'} (<span class="text-cyan-600 font-bold">¥${homeFare.toLocaleString()}</span>)</div>
+              <div><span class="font-bold">大学最寄り駅:</span> ${p.universityStation || '-'} (<span class="text-cyan-600 font-bold">¥${universityFare.toLocaleString()}</span>)</div>
             </div>
             <div class="grid grid-cols-3 gap-4">
               <div class="bg-white p-4 rounded-lg text-center">
@@ -1786,8 +1794,10 @@
           }
         const homeCount = aggregate.homeCount;
         const schoolCount = aggregate.schoolCount;
-        const homeTotalFare = person.homeFare * homeCount;
-        const universityTotalFare = person.universityFare * schoolCount;
+        const homeFare = Number(person.homeFare) || 0;
+        const universityFare = Number(person.universityFare) || 0;
+        const homeTotalFare = homeFare * homeCount;
+        const universityTotalFare = universityFare * schoolCount;
         const totalFare = aggregate.totalFare;
         
         // 出勤日のリスト（重複除去）
@@ -1812,7 +1822,7 @@
                 </tr>
                 <tr>
                   <td>自宅 往復交通費</td>
-                  <td>¥${person.homeFare.toLocaleString()}</td>
+                  <td>¥${homeFare.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td>大学 最寄り駅</td>
@@ -1820,7 +1830,7 @@
                 </tr>
                 <tr>
                   <td>大学 往復交通費</td>
-                  <td>¥${person.universityFare.toLocaleString()}</td>
+                  <td>¥${universityFare.toLocaleString()}</td>
                 </tr>
               </table>
             </div>
