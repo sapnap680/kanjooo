@@ -890,11 +890,6 @@
           </div>
 
           <div>
-            <label for="personFurigana" class="block text-sm font-bold text-gray-700 mb-2">ふりがな:</label>
-            <input type="text" id="personFurigana" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition" placeholder="やまだ たろう">
-          </div>
-
-          <div>
             <label for="personOrder" class="block text-sm font-bold text-gray-700 mb-2">表示順序:</label>
             <input type="number" id="personOrder" min="0" value="0" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition" placeholder="数字が小さいほど上に表示されます">
             <p class="text-sm text-gray-500 mt-1">数字が小さいほど上に表示されます</p>
@@ -1242,7 +1237,6 @@
 
       const name = document.getElementById('personName').value;
       const homeStation = document.getElementById('homeStation').value;
-      const furigana = document.getElementById('personFurigana').value;
       const order = parseInt(document.getElementById('personOrder').value) || 0;
       const homeFare = parseInt(document.getElementById('homeFare').value);
       const universityStation = document.getElementById('universityStation').value;
@@ -1253,10 +1247,6 @@
         return;
       }
 
-      if (!furigana.trim()) {
-        alert('ふりがなを入力してください');
-        return;
-      }
       if (isNaN(homeFare) || homeFare < 0 || isNaN(universityFare) || universityFare < 0) {
         alert('交通費は0以上の数値を入力してください');
         return;
@@ -1269,7 +1259,6 @@
       try {
         const personData = {
           name: name,
-          furigana: furigana,
           order: order,
           homeStation: homeStation,
           homeFare: homeFare,
@@ -1338,20 +1327,12 @@
       }
 
       try {
-        const furigana = prompt('ふりがな:', person.furigana || '');
-        if (furigana === null) return;
-        if (!furigana.trim()) {
-          alert('ふりがなを入力してください');
-          return;
-        }
-
         const orderStr = prompt('表示順序:', person.order || 0);
         if (orderStr === null) return;
         const order = parseInt(orderStr) || 0;
 
         const updateData = {
           name: name.trim(),
-          furigana: furigana.trim(),
           order: order,
           homeStation: homeStation.trim(),
           homeFare: homeFare,
@@ -1452,7 +1433,7 @@
           <div class="bg-gradient-to-r from-cyan-50 to-blue-50 p-6 rounded-xl shadow-md border-2 border-cyan-200 hover:shadow-lg transition mb-4">
             <div class="text-xl font-bold text-gray-800 mb-3">${p.name}</div>
             <div class="text-sm text-gray-600 mb-4 bg-white p-3 rounded-lg">
-              <div class="mb-1"><span class="font-bold">ふりがな:</span> ${p.furigana || '-'} | <span class="font-bold">表示順序:</span> ${p.order || 0}</div>
+              <div class="mb-1"><span class="font-bold">表示順序:</span> ${p.order || 0}</div>
               <div class="mb-1"><span class="font-bold">家最寄り駅:</span> ${p.homeStation || '-'} (<span class="text-cyan-600 font-bold">¥${homeFare.toLocaleString()}</span>)</div>
               <div><span class="font-bold">大学最寄り駅:</span> ${p.universityStation || '-'} (<span class="text-cyan-600 font-bold">¥${universityFare.toLocaleString()}</span>)</div>
             </div>
@@ -2108,9 +2089,7 @@
       }
 
       // 名前で人を検索（部分一致）
-      const matchedPeople = people.filter(p => 
-        p.name.includes(searchName) || (p.furigana && p.furigana.includes(searchName))
-      );
+      const matchedPeople = people.filter(p => p.name.includes(searchName));
 
       if (matchedPeople.length === 0) {
         resultsDiv.innerHTML = '<p class="text-gray-500 text-center py-8">該当する人が見つかりませんでした</p>';
